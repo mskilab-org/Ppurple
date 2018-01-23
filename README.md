@@ -18,7 +18,7 @@ biocLite("GenomicRanges")
 install.packages('devtools')
 ```
 
-3. Install mskilab dependent packages (gUtils and bamUtils)
+3. Install mskilab R dependencies (gUtils and bamUtils)
 
 
 ```{r}
