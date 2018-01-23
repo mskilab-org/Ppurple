@@ -18,3 +18,4 @@ Internal function
 \author{
 Marcin Imielinski
 }
+\keyword{internal}

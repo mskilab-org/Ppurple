@@ -9,6 +9,29 @@ ppem(segs.grid, segs = NULL, segs.h = NULL,
   use.tot = TRUE, use.het = TRUE, use.uniform = FALSE, tol = 1,
   fix.sd = NULL, max_iter = 100, verbose = FALSE)
 }
+\arguments{
+\item{segs.grid}{data.table collating phased het count, mean coverage, sos for every seg x purity x ploidy x copy state combos}
+
+\item{segs}{data.table of total coverage segs inputted to ppemgrid}
+
+\item{segs.h}{data.table of het segs inputted to ppemgrid}
+
+\item{sd0}{numeric scalar initial sd guess for total coverage clusters}
+
+\item{sd0.k}{numeric scalar initial sd guess for distribution of integer copy number}
+
+\item{use.tot}{logical flag of whether to use total coverage in inference}
+
+\item{use.uniform}{logical flag of whether to use het coverage in inferendce}
+
+\item{tol}{numeric tolerance}
+
+\item{fix.sd}{logical flag whether to fix.sd to initial value in inference}
+
+\item{max_iter}{integer scalar max iteration}
+
+\item{verbose}{logical flag}
+}
 \description{
 Utility function taking in
 segs = grid of total copy number segments x alpha x tau x k
@@ -28,3 +51,4 @@ $pi.kh = mixing probability across haplotype specific copy states for each alpha
 \author{
 Marcin Imielinski
 }
+\keyword{internal}

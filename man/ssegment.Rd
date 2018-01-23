@@ -18,3 +18,4 @@ Internal function utilizing DNAcopy to segment a coverage profile
 \author{
 Marcin Imielinski
 }
+\keyword{internal}

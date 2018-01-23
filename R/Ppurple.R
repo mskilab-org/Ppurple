@@ -10,7 +10,8 @@
 #' 
 #' Internal function utilizing DNAcopy to segment a coverage profile
 #' @param tcov GRanges of binned genome-wide coverage
-#' @return GRanges of genomewise segments of piecewise constant coverage 
+#' @return GRanges of genomewise segments of piecewise constant coverage
+#' @keywords internal
 #' @author Marcin Imielinski
 ssegment = function(tcov){
   library(DNAcopy)
@@ -34,6 +35,7 @@ ssegment = function(tcov){
 #' Internal function
 #' @param x vector of log probabilities
 #' @return log.sum.exp of input
+#' @keywords internal
 #' @author Marcin Imielinski
 log.sum.exp<- function(x){
     offset <- max(x)
@@ -50,6 +52,7 @@ log.sum.exp<- function(x){
 #' @param n numeric vector of data ns
 #' @param lambda numeric vector of lambda parameters
 #' @return log poisson joint likelihood
+#' @keywords internal
 #' @author Marcin Imielinski
 llpois = function(slfx, sx, n, lambda) -n*lambda - slfx + sx*log(lambda)
 
@@ -60,6 +63,7 @@ llpois = function(slfx, sx, n, lambda) -n*lambda - slfx + sx*log(lambda)
 #' Internal function
 #' @param x integer vector for whiich to compute approximate log factorial
 #' @return log factorial
+#' @keywords internal
 #' @author Marcin Imielinski
 lfactorial = function(x) {
   y = suppressWarnings(log(factorial(x)));
@@ -68,11 +72,17 @@ lfactorial = function(x) {
   return(y)
 }
 
-#' @name llnorm
-#' @title Internal function doing product of normal log likelihoods
+#' @name llnorml
+#' @title Internal function doing product of normal log likelihoods from sufficient stats
 #' @description 
 #' 
-#' Internal function 
+#' Internal function
+#' @param x numeric vector observed mean
+#' @param sos numeric vector observed sum of squares
+#' @param n interger vector number of observations
+#' @param mu mean param of normal distribution
+#' @param sd sigma param of normal distribution
+#' 
 #' @author Marcin Imielinski
 llnorm = function(x, sos, n, mu, sd)
   -n*log(sqrt(2*3.141593)*sd)-(n*(mu-x)^2 + sos)/(2*sd^2)
@@ -86,7 +96,9 @@ llnorm = function(x, sos, n, mu, sd)
 #' and expected sufficient statistics for joint poisson
 #' per group (i.e. segment)
 #' 
-#' Internal function 
+#' Internal function
+#' @param hets data.table of genome wide het sites with $talt, $tref
+#' @keywords internal
 #' @author Marcin Imielinski
 hapseg = function(hets)
 {
@@ -151,6 +163,16 @@ hapseg = function(hets)
 #' to output the final solution which is a data.table mapping $purity and $ploidy values
 #' to a posterior probability $p
 #' @author Marcin Imielinski
+#' @param cov GRanges or data.table of genome wide coverage tiles with field $y specifying normalized coverage
+#' @param hets GRanges or data.table of hets with fields $talt, $tref specifying alt and ref counts of hets in tumor
+#' @param segs GRanges of pre-computed segments (optional, if NULL these will be computed via DNA copy of cov)
+#' @param purities numeric vector of ploidies to sweep in grid (default from 1 to 5, 0.2 increment)
+#' @param ploidies numeric vector of purities to sweep in grid (default from 0 to 1, 0.1 increment)
+#' @param refine integer scalar of how many fold refinement of purities x ploidies grid to perform after initial run (default = 10, careful to not make too big)
+#' @param K integer scalar number of copy states to model (default 20)
+#' @param verbose logical flag
+#' @param mc.cores integer scalar to parallelize (default = 1)
+#' @param numchunks how many chunks to parallelize over (default = mc.cores)
 #' @export
 ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = TRUE, min.p = 0.0001, mc.cores = 1, numchunks = mc.cores)
 {
@@ -311,6 +333,17 @@ ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), pl
 #' params
 #' 
 #' @author Marcin Imielinski
+#' @param purities vector of purities to sweep
+#' @param ploidies vector of ploidies to sweep
+#' @param pp  (optional) data.table of purity x ploidy x alpha x tau for explicit combos to sweep
+#' @param segs data.table of per segment mean coverage data, ns,  sos's across segs
+#' @param segs.h data.table of phased cluster centers across segs
+#' @param rho  numeric scalar mean total coverage 
+#' @param rho.h  numeric scalar mean het count
+#' @param k.dist integer scalar optimization constant of how many copy states to explicitly compute probabilities for relative to the MLE value
+#' @param K integer scalar total number of copy number states
+#' @param verbose logical flag 
+#' @keywords internal
 ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, rho = 1, rho.h = 1, k.dist = 3, K = 20, verbose = TRUE)
 {
 
@@ -394,6 +427,18 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
 #' $pi.kh = mixing probability across haplotype specific copy states for each alpha tau
 #' 
 #' @author Marcin Imielinski
+#' @param segs.grid data.table collating phased het count, mean coverage, sos for every seg x purity x ploidy x copy state combos
+#' @param segs data.table of total coverage segs inputted to ppemgrid
+#' @param segs.h data.table of het segs inputted to ppemgrid
+#' @param sd0 numeric scalar initial sd guess for total coverage clusters
+#' @param sd0.k numeric scalar initial sd guess for distribution of integer copy number
+#' @param use.tot logical flag of whether to use total coverage in inference
+#' @param use.uniform logical flag of whether to use het coverage in inferendce
+#' @param tol numeric tolerance
+#' @param fix.sd logical flag whether to fix.sd to initial value in inference
+#' @param max_iter integer scalar max iteration
+#' @param verbose logical flag 
+#' @keywords internal
 ppem = function(segs.grid, segs = NULL, segs.h = NULL,
                  sd0 = segs.grid[!duplicated(j), sqrt(var(y))],
                  sd0.k = 3,

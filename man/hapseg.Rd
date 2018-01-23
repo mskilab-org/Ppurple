@@ -6,6 +6,9 @@
 \usage{
 hapseg(hets)
 }
+\arguments{
+\item{hets}{data.table of genome wide het sites with $talt, $tref}
+}
 \description{
 Phases grouped (i.e. presegmented) hets and computes cluster centers (lambdas)
 and expected sufficient statistics for joint poisson
@@ -16,3 +19,4 @@ Internal function
 \author{
 Marcin Imielinski
 }
+\keyword{internal}

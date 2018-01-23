@@ -9,6 +9,27 @@ ppurpl(cov, hets = NULL, segs = NULL, purities = seq(0, 1, 0.1),
   ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = TRUE,
   min.p = 1e-04, mc.cores = 1, numchunks = mc.cores)
 }
+\arguments{
+\item{cov}{GRanges or data.table of genome wide coverage tiles with field $y specifying normalized coverage}
+
+\item{hets}{GRanges or data.table of hets with fields $talt, $tref specifying alt and ref counts of hets in tumor}
+
+\item{segs}{GRanges of pre-computed segments (optional, if NULL these will be computed via DNA copy of cov)}
+
+\item{purities}{numeric vector of ploidies to sweep in grid (default from 1 to 5, 0.2 increment)}
+
+\item{ploidies}{numeric vector of purities to sweep in grid (default from 0 to 1, 0.1 increment)}
+
+\item{refine}{integer scalar of how many fold refinement of purities x ploidies grid to perform after initial run (default = 10, careful to not make too big)}
+
+\item{K}{integer scalar number of copy states to model (default 20)}
+
+\item{verbose}{logical flag}
+
+\item{mc.cores}{integer scalar to parallelize (default = 1)}
+
+\item{numchunks}{how many chunks to parallelize over (default = mc.cores)}
+}
 \description{
 Computes posterior probability of purity ploidy for data with coverage cov (granges with value $y specifying coverage)
 hets with $talt, $tref, $nref, $nalt specifying tumor and normal alt and ref allelic counts, and (optional) segments via EM algorithm. 
