@@ -34,3 +34,9 @@ devtools::install_github('mskilab/Ppurple')
 ```
 
 
+Tutorial
+------------
+
+Ppurple uses EM to infer purity and ploidy from total coverage and heterozygote
+counts, provided as data.frames, data.tables, or GRanges.  It returns a
+data.table of ranked solutions, associated with a posterior probability. 

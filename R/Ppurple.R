@@ -338,7 +338,7 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
       pta[, pta := exp(log.pat_xsp)]
     }
 
-  res = pta[rev(order(log.pat_xsp)), .(purity = alpha, ploidy = tau, pta = prob)]
+  res = pta[rev(order(log.pat_xsp)), .(purity = alpha, ploidy = tau, prob = pta)]
   return(res)
 }
 
