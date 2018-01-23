@@ -2,17 +2,16 @@
 % Please edit documentation in R/Ppurple.R
 \name{ppurple}
 \alias{ppurple}
-\alias{ppurpl}
 \title{Probabilistic purity ploidy estimation}
 \usage{
-ppurpl(cov, hets = NULL, segs = NULL, purities = seq(0, 1, 0.1),
-  ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = TRUE,
+ppurple(cov, hets = NULL, segs = NULL, purities = seq(0, 1, 0.1),
+  ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = FALSE,
   min.p = 1e-04, mc.cores = 1, numchunks = mc.cores)
 }
 \arguments{
 \item{cov}{GRanges or data.table of genome wide coverage tiles with field $y specifying normalized coverage}
 
-\item{hets}{GRanges or data.table of hets with fields $talt, $tref specifying alt and ref counts of hets in tumor}
+\item{hets}{GRanges or data.table of hets with fields $alt, $ref specifying alt and ref counts of hets in tumor}
 
 \item{segs}{GRanges of pre-computed segments (optional, if NULL these will be computed via DNA copy of cov)}
 
@@ -32,7 +31,7 @@ ppurpl(cov, hets = NULL, segs = NULL, purities = seq(0, 1, 0.1),
 }
 \description{
 Computes posterior probability of purity ploidy for data with coverage cov (granges with value $y specifying coverage)
-hets with $talt, $tref, $nref, $nalt specifying tumor and normal alt and ref allelic counts, and (optional) segments via EM algorithm. 
+hets with $alt, $ref specifying tumor and normal alt and ref allelic counts, and (optional) segments via EM algorithm. 
 
 If segments not specified, then it is inferred from the segmentation of cov via CBS (using DNA copy)
 

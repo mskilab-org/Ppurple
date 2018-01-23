@@ -5,6 +5,7 @@
 #' @import bamUtils
 
 #' @name ssegment
+#' @rdname internal
 #' @title Internal function utilizing DNAcopy to segment a coverage profile
 #' @description 
 #' 
@@ -13,22 +14,25 @@
 #' @return GRanges of genomewise segments of piecewise constant coverage
 #' @keywords internal
 #' @author Marcin Imielinski
-ssegment = function(tcov){
+ssegment = function(cov, verbose = verbose){
   library(DNAcopy)
-  new.sl = seqlengths(tcov)
-  ix = which(!is.na(tcov$y))
-  cat('sending ', length(ix), ' segments\n')
-  cna = CNA(log(tcov$y[ix]), as.character(seqnames(tcov))[ix], start(tcov)[ix], data.type = 'logratio')
-  gc()
-  cat('finished making cna\n')
-  seg = segment(smooth.CNA(cna), alpha = 1e-5, verbose = T)
-  cat('finished segmenting\n')
-  out = seg2gr(print(seg), new.sl) ## remove seqlengths that have not been segmented
-  out = gr.fix(out, new.sl, drop = T)
-  return(out)
+    new.sl = seqlengths(cov)
+    ix = which(!is.na(cov$y))
+    if (verbose)
+      cat('sending ', length(ix), ' segments to DNAcopy\n')
+    cna = CNA(log(cov$y[ix]), as.character(seqnames(cov))[ix], start(cov)[ix], data.type = 'logratio')
+    gc()
+    if (verbose)
+      message('\t ..finished segmentation')
+    seg = segment(smooth.CNA(cna), alpha = 1e-5, verbose = 0)
+    out = seg2gr(seg$out, new.sl) ## remove seqlengths that have not been segmented
+    out = gr.fix(out, new.sl, drop = T)
+    return(out)
 }
 
+
 #' @name log.sum.exp
+#' @rdname internal
 #' @title Internal function doing log sum exp
 #' @description 
 #' 
@@ -43,6 +47,7 @@ log.sum.exp<- function(x){
 }
 
 #' @name llpois
+#' @rdname internal
 #' @title Internal function doing product of poisson log likelihoods
 #' @description 
 #' 
@@ -57,6 +62,7 @@ log.sum.exp<- function(x){
 llpois = function(slfx, sx, n, lambda) -n*lambda - slfx + sx*log(lambda)
 
 #' @name lfactorial
+#' @rdname internal
 #' @title Internal function doing approximate log factorial
 #' @description 
 #' 
@@ -73,6 +79,7 @@ lfactorial = function(x) {
 }
 
 #' @name llnorml
+#' @rdname internal
 #' @title Internal function doing product of normal log likelihoods from sufficient stats
 #' @description 
 #' 
@@ -89,6 +96,7 @@ llnorm = function(x, sos, n, mu, sd)
 
 
 #' @name hapseg
+#' @rdname internal
 #' @title Internal function doing simple implementation of Carter, Getz 2011 hapseg
 #' @description 
 #'
@@ -97,19 +105,22 @@ llnorm = function(x, sos, n, mu, sd)
 #' per group (i.e. segment)
 #' 
 #' Internal function
-#' @param hets data.table of genome wide het sites with $talt, $tref
+#' @param hets data.table of genome wide het sites with $alt, $ref
 #' @keywords internal
 #' @author Marcin Imielinski
-hapseg = function(hets)
+hapseg = function(hets, verbose = FALSE)
 {
   ll = data.table(j = unique(hets$j), ll = -1e100, diff = 1e100)
   setkey(ll, j)
 
-  dat = hets[, .(j = j, i = 1:.N, alt = talt, ref = tref, phase = rep(c(TRUE, FALSE), each = .N))]
+  dat = hets[, .(j = j, i = 1:.N, alt = alt, ref = ref, phase = rep(c(TRUE, FALSE), each = .N))]
   dat[, p := ifelse(phase, as.numeric(alt>ref), as.numeric(alt<=ref))]
   tol = 1
+  iteration = 1
   while (any(ll$diff > tol))
   {
+    if (verbose)
+      message('Hapseg iteration ', iteration, ':')
     ##
     ## M STEP
     ##
@@ -133,7 +144,9 @@ hapseg = function(hets)
     ll.new$ll.old =  ll[.(ll.new$j), ll]
     ll.new[, diff := ll-ll.old]
     ll = ll.new
-    print(ll.new)
+    iteration = iteration + 1
+    if (verbose)
+      message('\t\tLL diff: ', max(ll$diff), ' tol:', tol)
   }
 
   ## final go around compute our expected sufficient statistics
@@ -154,7 +167,7 @@ hapseg = function(hets)
 #' @title Probabilistic purity ploidy estimation
 #' @description
 #' Computes posterior probability of purity ploidy for data with coverage cov (granges with value $y specifying coverage)
-#' hets with $talt, $tref, $nref, $nalt specifying tumor and normal alt and ref allelic counts, and (optional) segments via EM algorithm. 
+#' hets with $alt, $ref specifying tumor and normal alt and ref allelic counts, and (optional) segments via EM algorithm. 
 #' 
 #' If segments not specified, then it is inferred from the segmentation of cov via CBS (using DNA copy)
 #'
@@ -164,7 +177,7 @@ hapseg = function(hets)
 #' to a posterior probability $p
 #' @author Marcin Imielinski
 #' @param cov GRanges or data.table of genome wide coverage tiles with field $y specifying normalized coverage
-#' @param hets GRanges or data.table of hets with fields $talt, $tref specifying alt and ref counts of hets in tumor
+#' @param hets GRanges or data.table of hets with fields $alt, $ref specifying alt and ref counts of hets in tumor
 #' @param segs GRanges of pre-computed segments (optional, if NULL these will be computed via DNA copy of cov)
 #' @param purities numeric vector of ploidies to sweep in grid (default from 1 to 5, 0.2 increment)
 #' @param ploidies numeric vector of purities to sweep in grid (default from 0 to 1, 0.1 increment)
@@ -174,10 +187,16 @@ hapseg = function(hets)
 #' @param mc.cores integer scalar to parallelize (default = 1)
 #' @param numchunks how many chunks to parallelize over (default = mc.cores)
 #' @export
-ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = TRUE, min.p = 0.0001, mc.cores = 1, numchunks = mc.cores)
+ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = FALSE, min.p = 0.0001, mc.cores = 1, numchunks = mc.cores)
 {
   if (!is.null(hets))
-    {
+  {
+      if (is.null(hets$alt))
+        stop('hets should have a column $alt specifying the alt count at each het site')
+
+      if (is.null(hets$ref))
+        stop('hets should have a column $ref specifying the ref count at each het site')
+
       if (is(hets, 'GRanges'))
         {
           if (length(hets)>0)
@@ -186,68 +205,60 @@ ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), pl
             hets = NULL
         }
       else if (nrow(hets)==0)      
-        hets = NULL
+        hets = NULL      
     }
-          
+
+  if (is.null(cov$y))
+      stop('cov should have a column $y specifying the normalized coverage value at each interval')
 
   if (!inherits(cov, 'GRanges'))
     cov = dt2gr(cov)
+
+  if (is.null(segs))
+  {
+    if (verbose)
+      message('Segments not provided so doing internal segmentation via DNAcopy')
+    segs = ssegment(cov, verbose)
+  }
   
   if (!inherits(segs, 'GRanges'))
     segs = dt2gr(segs)
-
+  
   if (!inherits(cov, 'GRanges'))
     cov = dt2gr(cov)
   
-  ssegment = function(cov, verbose = verbose){
-    library(DNAcopy)
-    new.sl = seqlengths(cov)
-    ix = which(!is.na(cov$y))
-    if (verbose)
-      cat('sending ', length(ix), ' segments\n')
-    cna = CNA(log(cov$y[ix]), as.character(seqnames(cov))[ix], start(cov)[ix], data.type = 'logratio')
-    gc()
-    if (verbose)
-      cat('finished making cna\n')
-    seg = segment(smooth.CNA(cna), alpha = 1e-5, verbose = T)
-    if (verbose)
-    cat('finished segmenting\n')
-    out = seg2gr(print(seg), new.sl) ## remove seqlengths that have not been segmented
-    out = gr.fix(out, new.sl, drop = T)
-    return(out)
-  }
-
   if (verbose)
     message('Fitting initial grid of ', length(purities), ' purity and ', length(ploidies), ' ploidy combinations.')
-
-  if (is.null(segs))
-    segs = ssegment(cov, verbose)
 
   cov$j = gr.match(cov, segs)
 
   if (!is.null(hets))
     hets$j = gr.match(dt2gr(hets), segs)
 
+  if (any(iix <- is.infinite(cov$y)))
+    cov$y[iix]= NA
+
   ## aggregate coverage around segs
-  segs = gr2dt(cov)[, .(y = mean(y, na.rm = TRUE), sos = sum((y-mean(y, na.rm = TRUE))^2), nbins = .N),
+  segs = gr2dt(cov)[, .(y = mean(y, na.rm = TRUE), sos = sum((y-mean(y, na.rm = TRUE))^2, na.rm = TRUE), nbins = .N),
                     keyby = .(j = j)]
 
   if (!is.null(hets))
-    {
+  {
+    if (verbose)
       message('Running hapseg on hets')
-      segs.h = hapseg(hets[!is.na(j),])$seg
-      segs.h$y.high = segs.h$high.lambda
-      segs.h$y.low = segs.h$low.lambda
-      segs.h$nbins.h = segs.h$n
-      rho.h = mean(c(hets$talt, hets$tref), na.rm = TRUE)
-    }
+    segs.h = hapseg(hets[!is.na(j),], verbose)$seg
+    segs.h$y.high = segs.h$high.lambda
+    segs.h$y.low = segs.h$low.lambda
+    segs.h$nbins.h = segs.h$n
+    rho.h = mean(c(hets$alt, hets$ref), na.rm = TRUE)
+  }
   else
   {
     segs.h = data.table(j = as.numeric(NA), y.high = as.numeric(NA), y.low = as.numeric(NA), nbins.h = as.numeric(NA))
     rho.h = NA
   }
 
-  rho = mean(cov$y)
+  rho = mean(cov$y, na.rm = TRUE)
 
   purities = round(sort(unique(purities)), 5) ## gets rid of weird numeric errors with seq
   ploidies = round(sort(unique(ploidies)), 5)
@@ -273,7 +284,8 @@ ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), pl
       ##
       ## FIRST refine purities using all ploidies
       ##
-      message('Refining purities around initially provided ploidies')
+      if (verbose)
+        message('Refining purities around initially provided ploidies')
       ## draw rectangles around all regions above min.p
       modes = pta[pta>min.p, ]
       modes[, pli := match(tau, ploidies)]
@@ -285,7 +297,9 @@ ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), pl
 
       pp = pp[!duplicated(cbind(alpha, tau)), ]
       pp.l = split(pp, rep(1:numchunks, nrow(pp)/numchunks*2)[1:nrow(pp)])
-      message('Refining ', nrow(pp), ' solutions around ', nrow(modes), ' pixels from first round')
+
+      if (verbose)
+        message('Refining ', nrow(pp), ' solutions around ', nrow(modes), ' pixels from first round')
 
       pta = rbindlist(mclapply(pp.l, function(pp) ppemgrid(pp = pp, segs = segs, segs.h = segs.h, rho = rho, rho.h = rho.h, K = K, verbose = verbose)$pta, mc.cores = mc.cores))
       
@@ -294,7 +308,9 @@ ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), pl
       pta[, log.pat_xsp := log.px_spat - ll]
       pta[, pta := exp(log.pat_xsp)]
 
-      message('Refining purities and ploidies together')
+      if (verbose)
+        message('Refining purities and ploidies together')
+
       ## draw rectangles around all regions above min.p
       purities = sort(unique(pta$alpha))
       ploidies = sort(unique(pta$tau))
@@ -310,7 +326,9 @@ ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), pl
 
       pp = pp[!duplicated(cbind(alpha, tau)), ]
       pp.l = split(pp, rep(1:numchunks, nrow(pp)/numchunks*2)[1:nrow(pp)])
-      message('Refining ', nrow(pp), ' solutions around ', nrow(modes), ' pixels from second round')
+
+      if (verbose)
+        message('Refining ', nrow(pp), ' solutions around ', nrow(modes), ' pixels from second round')
 
       pta = rbindlist(mclapply(pp.l, function(pp) ppemgrid(pp = pp, segs = segs, segs.h = segs.h, rho = rho, rho.h = rho.h, K = K, verbose = verbose)$pta, mc.cores = mc.cores))
       
@@ -324,6 +342,7 @@ ppurpl = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), pl
 }
 
 #' @name ppemgrid
+#' @rdname internal
 #' @title ppemgrid internal function
 #' @description
 #' 
@@ -408,6 +427,7 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
 
 
 #' @name ppem
+#' @rdname internal
 #' @title ppem 
 #' @description
 #'
@@ -457,7 +477,7 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
   convergence = FALSE
 
   if (verbose)
-    message('Starting PP em with total segment grid with  ', nrow(segs.grid), ' rows')
+    message('Starting Ppurple EM with total segment grid containing ', nrow(segs.grid), ' rows')
 
   ## pi.k is our ploidy condition prior probability of copy states
   ## (which ends up softly specifying / constraining ploidy)
@@ -492,8 +512,10 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
 
   while (convergence == FALSE && iteration < max_iter){
     iteration = iteration + 1
-    print(paste('Starting iteration', iteration))
-    print(Sys.time() - start)
+
+    if (verbose)
+      message(paste('Ppurple EM iteration', iteration, ':'))
+#    print(Sys.time() - start)
 
     #################
     ## E step
@@ -566,7 +588,7 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
 
     if (verbose)
     {
-      message('diff:', diff, ' tol: ', tol)
+      message('\t\tLL diff:', diff, ' tol: ', tol)
 #      print('purity ploidy')
 #      pta[, p := round(pta,3)]
 #  print(pta[order(log.pat_xsp, decreasing = T)][1:10, ])
