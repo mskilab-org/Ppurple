@@ -1,0 +1,32 @@
+Package: Ppurple
+Title: P(robabilistic)PU(rity)PL(oidy)E(stimation)
+    Operations
+Version: 0.2.0
+Authors@R: c(
+    person("Aditya", "Desphande", role = "aut", email = "asd3002@med.cornell.edu"),
+    person("Marcin", "Imielinski", role = c("aut", "cre"), email = "mai9037@med.cornell.edu"))
+Description: Purity and ploidy inference from WGS, panel, WES from total read density and hets. 
+Depends:
+    R (>= 3.1.0),
+    GenomicRanges (>= 1.18),
+    gUtils,
+    bamUtils,
+    data.table (>= 1.9)
+Imports:
+    IRanges (>= 2.0),
+    S4Vectors (>= 0.4),
+    GenomeInfoDb (>= 1.2),
+    parallel,
+    BiocGenerics(>= 0.12),
+    methods,
+    Matrix,
+    stringr
+Suggests:
+    BSgenome.Hsapiens.UCSC.hg19,
+    testthat,
+    rtracklayer
+License: GPL-2
+BugReports: http://github.com/mskilab/Ppurple
+LazyData: true
+RoxygenNote: 6.0.1.9000
+    
