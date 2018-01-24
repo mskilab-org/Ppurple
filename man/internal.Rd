@@ -28,7 +28,7 @@ ppemgrid(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h,
   rho = 1, rho.h = 1, k.dist = 3, K = 20, verbose = TRUE)
 
 ppem(segs.grid, segs = NULL, segs.h = NULL,
-  sd0 = segs.grid[!duplicated(j), sqrt(var(y))], sd0.k = 3,
+  sd0 = segs.grid[!duplicated(j), sqrt(var(y, na.rm = TRUE))], sd0.k = 3,
   use.tot = TRUE, use.het = TRUE, use.uniform = FALSE, tol = 1,
   fix.sd = NULL, max_iter = 100, verbose = FALSE)
 }
