@@ -84,6 +84,9 @@ head(hets)
 </tbody>
 </table>
 
+
+
+
 ## Run Ppurple without segs
 
 
@@ -151,13 +154,10 @@ pp = ppurple(cov = cov, hets = hets, segs = segs, verbose = TRUE)
     Hapseg iteration 2:
     		LL diff: 5.17692387802526e-06 tol:1
     Running ppemgrid with 11 purities ranging from 0 to 1 and 21 ploidies ranging from 1 to 5 with rho of 1.00978885796089 het rho of 22.283605.
-...
-...
     Ppurple EM iteration 3 :
     		LL diff:58.6840663431212 tol: 1
     Ppurple EM iteration 4 :
     		LL diff:0.864216329413466 tol: 1
-
 
 
 ```R
