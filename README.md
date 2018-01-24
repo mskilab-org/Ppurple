@@ -96,10 +96,7 @@ pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
 
     Segments not provided so doing internal segmentation via DNAcopy
     sending  92654  segments to DNAcopy
-
-...
-...
-
+    ... ...
     Ppurple EM iteration 3 :
     		LL diff:58.2742695834022 tol: 1
     Ppurple EM iteration 4 :
