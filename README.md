@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/mskilab/gUtils.svg?branch=master)](https://travis-ci.org/mskilab/Ppurple)
+[![codecov.io](https://img.shields.io/codecov/c/github/mskilab/gUtils.svg)](https://codecov.io/github/mskilab/Ppurple?branch=master)
+
+
 Ppurple
 =======
 Probabilistic purity ploidy estimation
