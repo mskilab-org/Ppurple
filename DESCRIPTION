@@ -6,13 +6,16 @@ Authors@R: c(
     person("Aditya", "Desphande", role = "aut", email = "asd3002@med.cornell.edu"),
     person("Marcin", "Imielinski", role = c("aut", "cre"), email = "mai9037@med.cornell.edu"))
 Description: Purity and ploidy inference from WGS, panel, WES from total read density and hets. 
+biocViews:
 Depends:
     R (>= 3.1.0),
     GenomicRanges (>= 1.18),
     gUtils,
     bamUtils,
-    data.table (>= 1.9)
+    data.table (>= 1.9), 
+    DNAcopy
 Imports:
+    Rsamtools,
     IRanges (>= 2.0),
     S4Vectors (>= 0.4),
     GenomeInfoDb (>= 1.2),

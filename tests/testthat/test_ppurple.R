@@ -1,11 +1,17 @@
-sessionInfo()
-suppressPackageStartupMessages(library(Ppurple))
 
+library(Ppurple)
+
+library(data.table)
+
+context('testing Ppurple ops')
+
+## Error in test_files(paths, reporter = reporter, env = env, stop_on_failure = stop_on_failure,  : 
 cov = fread(system.file("extdata", "coverage.csv", package = "Ppurple"))
 hets = fread(system.file("extdata", "hets.csv", package = "Ppurple"))
 segs = fread(system.file("extdata", "segs.csv", package = "Ppurple"))
+ 
 
-test_that("ppurple", {
+test_that("ppurple() works", {
   pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
   expect_equal(round(pp[1,]$purity,2), 0.49)
   expect_equal(round(pp[1,]$ploidy,2), 3.86)
