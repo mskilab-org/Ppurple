@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/mskilab/gUtils.svg?branch=master)](https://travis-ci.org/mskilab/Ppurple)
-[![codecov.io](https://img.shields.io/codecov/c/github/mskilab/gUtils.svg)](https://codecov.io/github/mskilab/Ppurple?branch=master)
+p[![codecov.io](https://img.shields.io/codecov/c/github/mskilab/gUtils.svg)](https://codecov.io/github/mskilab/Ppurple?branch=master)
 
 
 Ppurple
@@ -173,4 +173,13 @@ pp[1,]
 </tbody>
 </table>
 
+
+Attributions
+------------
+> Marcin Imielinski - Weill Cornell Medicine; Core Member, New York Genome Center
+
+> Aditya Desphande - Tri-I CBM PhD candidate, Weill Cornell Medicine
+
+[license]: https://github.com/mskilab/gUtils/blob/master/LICENSE
+[docs]: http://gutils.readthedocs.org/en/latest/index.html
 
