@@ -108,7 +108,7 @@ library(Ppurple)
     		LL diff:0.912960716173984 tol: 1
 
 
-##### output is a data.table of likely solution and their probability, showing the most likely solution in the first row
+#### output is a data.table of solutions and their probabilities, showing the most likely solution in the first row
 
 
 ```R
