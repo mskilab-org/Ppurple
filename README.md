@@ -129,8 +129,8 @@ library(Ppurple))
 > segs = fread(system.file("extdata", "segs.csv", package = "Ppurple"))
 > head(segs)
 ```
-<font size="2">
-<table>
+
+<table style = 'font-size:80%'>
 <thead><tr><th scope=col>seqnames</th><th scope=col>start</th><th scope=col>end</th><th scope=col>width</th><th scope=col>strand</th><th scope=col>ID</th><th scope=col>num.mark</th><th scope=col>seg.mean</th></tr></thead>
 <tbody>
 	<tr><td>1       </td><td>   79401</td><td> 6376801</td><td> 6297401</td><td>*       </td><td>Sample.1</td><td>183     </td><td> 0.0683 </td></tr>
@@ -141,7 +141,6 @@ library(Ppurple))
 	<tr><td>1       </td><td>23421201</td><td>48154401</td><td>24733201</td><td>*       </td><td>Sample.1</td><td>795     </td><td>-0.1152 </td></tr>
 </tbody>
 </table>
-</font>
 
 ```R
 > pp = ppurple(cov = cov, hets = hets, segs = segs, verbose = TRUE)
