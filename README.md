@@ -49,7 +49,7 @@ data.table of ranked solutions, associated with a posterior probability.
 ### Load Ppurple
 
 ```R
-library(Ppurple))
+library(Ppurple)
 ```
 ### Load coverage, hets, and segs
 
