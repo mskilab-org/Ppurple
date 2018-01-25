@@ -92,7 +92,7 @@ library(Ppurple))
 
 
 
-#### Run Ppurple without segs
+#### Run Ppurple without precomputed segs
 
 
 ```R
@@ -122,7 +122,7 @@ library(Ppurple))
 </tbody>
 </table>
 
-## Run Ppurple with pre-computed segs
+#### Run Ppurple with pre-computed segs
 
 
 ```R
