@@ -46,12 +46,12 @@ Ppurple uses EM to infer purity and ploidy from total coverage and heterozygote
 counts, provided as data.frames, data.tables, or GRanges.  It returns a
 data.table of ranked solutions, associated with a posterior probability. 
 
-#### Load Ppurple
+### Load Ppurple
 
 ```R
 library(Ppurple))
 ```
-#### Load coverage, hets, and segs
+### Load coverage, hets, and segs
 
 
 ```R
@@ -92,7 +92,7 @@ library(Ppurple))
 
 
 
-#### Run Ppurple without precomputed segs
+### Run Ppurple without precomputed segs
 
 
 ```R
@@ -108,7 +108,7 @@ library(Ppurple))
     		LL diff:0.912960716173984 tol: 1
 
 
-###### output is a data.table of likely solution and their probability, showing the most likely solution in the first row
+##### output is a data.table of likely solution and their probability, showing the most likely solution in the first row
 
 
 ```R
@@ -122,7 +122,7 @@ library(Ppurple))
 </tbody>
 </table>
 
-#### Run Ppurple with pre-computed segs
+### Run Ppurple with pre-computed segs
 
 
 ```R
