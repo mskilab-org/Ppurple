@@ -59,18 +59,26 @@ library(Ppurple)
 > head(cov)
 ```
 
+
 <table>
-<thead><tr><th scope=col>seqnames</th><th scope=col>start</th><th scope=col>end</th><th scope=col>width</th><th scope=col>strand</th><th scope=col>ratio</th><th scope=col>tum.counts</th><th scope=col>norm.counts</th><th scope=col>y</th></tr></thead>
+<thead><tr><th scope=col>seqnames</th><th scope=col>start</th><th
+scope=col>end</th><th scope=col>width</th><th scope=col>strand</th><th
+scope=col>y</th></tr></thead>
 <tbody>
-	<tr><td>9        </td><td> 57584801</td><td> 57585000</td><td>200      </td><td>*        </td><td>       NA</td><td>       NA</td><td>       NA</td><td>       NA</td></tr>
-	<tr><td>12       </td><td>  3410201</td><td>  3410400</td><td>200      </td><td>*        </td><td>0.8453500</td><td>0.8596121</td><td>0.9817843</td><td>0.8453500</td></tr>
-	<tr><td>17       </td><td> 27437401</td><td> 27437600</td><td>200      </td><td>*        </td><td>0.8585241</td><td>1.0653026</td><td>1.1980380</td><td>0.8585241</td></tr>
-	<tr><td>5        </td><td>163569001</td><td>163569200</td><td>200      </td><td>*        </td><td>1.0817177</td><td>1.1726743</td><td>1.0466792</td><td>1.0817177</td></tr>
-	<tr><td>11       </td><td> 63494201</td><td> 63494400</td><td>200      </td><td>*        </td><td>0.7240008</td><td>0.7616872</td><td>1.0157520</td><td>0.7240008</td></tr>
-	<tr><td>12       </td><td> 54107601</td><td> 54107800</td><td>200      </td><td>*        </td><td>0.8295073</td><td>0.9813019</td><td>1.1421747</td><td>0.8295073</td></tr>
+<tr><td>1        </td><td> 79401   </td><td> 79600   </td><td>200
+</td><td>*        </td><td>1.5395624</td></tr>
+<tr><td>1        </td><td>531201   </td><td>531400   </td><td>200
+</td><td>*        </td><td>1.9518525</td></tr>
+<tr><td>1        </td><td>555401   </td><td>555600   </td><td>200
+</td><td>*        </td><td>0.8810031</td></tr>
+<tr><td>1        </td><td>571601   </td><td>571800   </td><td>200
+</td><td>*        </td><td>0.8270474</td></tr>
+<tr><td>1        </td><td>573601   </td><td>573800   </td><td>200
+</td><td>*        </td><td>1.0702993</td></tr>
+<tr><td>1        </td><td>617801   </td><td>618000   </td><td>200
+</td><td>*        </td><td>1.3891481</td></tr>
 </tbody>
 </table>
-
 
 ```R
 > hets = fread(system.file("extdata", "hets.csv", package = "Ppurple"))
@@ -78,17 +86,25 @@ library(Ppurple)
 ```
 
 <table>
-<thead><tr><th scope=col>seqnames</th><th scope=col>start</th><th scope=col>end</th><th scope=col>Tumor_Seq_Allele1</th><th scope=col>Reference_Allele</th><th scope=col>ref.count.t</th><th scope=col>alt.count.t</th><th scope=col>ref.count.n</th><th scope=col>alt.count.n</th><th scope=col>alt.frac.t</th><th scope=col>ref.frac.t</th><th scope=col>alt.frac.n</th><th scope=col>ref.frac.n</th><th scope=col>alt</th><th scope=col>ref</th></tr></thead>
+<thead><tr><th scope=col>seqnames</th><th scope=col>start</th><th
+scope=col>end</th><th scope=col>width</th><th scope=col>strand</th><th
+scope=col>ALT</th><th scope=col>REF</th><th scope=col>alt</th><th
+scope=col>ref</th></tr></thead>
 <tbody>
-	<tr><td>12       </td><td> 14628069</td><td> 14628069</td><td>G        </td><td>A        </td><td> 6       </td><td>31       </td><td>11       </td><td>20       </td><td>0.8378378</td><td>0.1621622</td><td>0.6451613</td><td>0.3548387</td><td>31       </td><td> 6       </td></tr>
-	<tr><td>10       </td><td> 96954298</td><td> 96954298</td><td>G        </td><td>A        </td><td>25       </td><td>22       </td><td>27       </td><td>26       </td><td>0.4680851</td><td>0.5319149</td><td>0.4905660</td><td>0.5094340</td><td>22       </td><td>25       </td></tr>
-	<tr><td>2        </td><td> 51229355</td><td> 51229355</td><td>A        </td><td>C        </td><td>27       </td><td>25       </td><td>24       </td><td>42       </td><td>0.4807692</td><td>0.5192308</td><td>0.6363636</td><td>0.3636364</td><td>25       </td><td>27       </td></tr>
-	<tr><td>X        </td><td> 43498623</td><td> 43498623</td><td>G        </td><td>A        </td><td>10       </td><td>10       </td><td>22       </td><td>25       </td><td>0.5000000</td><td>0.5000000</td><td>0.5319149</td><td>0.4680851</td><td>10       </td><td>10       </td></tr>
-	<tr><td>11       </td><td> 97932192</td><td> 97932192</td><td>G        </td><td>A        </td><td>12       </td><td> 4       </td><td>15       </td><td>17       </td><td>0.2500000</td><td>0.7500000</td><td>0.5312500</td><td>0.4687500</td><td> 4       </td><td>12       </td></tr>
-	<tr><td>5        </td><td>145511921</td><td>145511921</td><td>A        </td><td>G        </td><td> 4       </td><td>27       </td><td>13       </td><td>19       </td><td>0.8709677</td><td>0.1290323</td><td>0.5937500</td><td>0.4062500</td><td>27       </td><td> 4       </td></tr>
+<tr><td>1      </td><td> 779322</td><td> 779322</td><td>1      </td><td>*
+</td><td>G      </td><td>A      </td><td>36     </td><td>37     </td></tr>
+<tr><td>1      </td><td> 998395</td><td> 998395</td><td>1      </td><td>*
+</td><td>G      </td><td>A      </td><td>27     </td><td>33     </td></tr>
+<tr><td>1      </td><td> 998501</td><td> 998501</td><td>1      </td><td>*
+</td><td>C      </td><td>G      </td><td>21     </td><td>29     </td></tr>
+<tr><td>1      </td><td>1158277</td><td>1158277</td><td>1      </td><td>*
+</td><td>A      </td><td>G      </td><td>29     </td><td>23     </td></tr>
+<tr><td>1      </td><td>1160665</td><td>1160665</td><td>1      </td><td>*
+</td><td>A      </td><td>G      </td><td>27     </td><td>24     </td></tr>
+<tr><td>1      </td><td>1206619</td><td>1206619</td><td>1      </td><td>*
+</td><td>A      </td><td>C      </td><td> 1     </td><td>52     </td></tr>
 </tbody>
 </table>
-
 
 
 
