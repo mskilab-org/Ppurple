@@ -73,8 +73,8 @@ library(Ppurple))
 
 
 ```R
-hets = fread(system.file("extdata", "hets.csv", package = "Ppurple"))
-head(hets)
+> hets = fread(system.file("extdata", "hets.csv", package = "Ppurple"))
+> head(hets)
 ```
 
 <table>
