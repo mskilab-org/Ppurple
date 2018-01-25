@@ -6,6 +6,7 @@ Ppurple
 =======
 Probabilistic purity ploidy estimation
 
+
 Installation
 ------------
 
@@ -54,8 +55,8 @@ library(Ppurple))
 
 
 ```R
-cov = fread(system.file("extdata", "coverage.csv", package = "Ppurple"))
-head(cov)
+> cov = fread(system.file("extdata", "coverage.csv", package = "Ppurple"))
+> head(cov)
 ```
 
 <table>
@@ -95,7 +96,7 @@ head(hets)
 
 
 ```R
-pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
+> pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
 ```
 
     Segments not provided so doing internal segmentation via DNAcopy
@@ -111,7 +112,7 @@ pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
 
 
 ```R
-pp[1,]
+> pp[1,]
 ```
 
 <table>
@@ -125,8 +126,8 @@ pp[1,]
 
 
 ```R
-segs = fread(system.file("extdata", "segs.csv", package = "Ppurple"))
-head(segs)
+> segs = fread(system.file("extdata", "segs.csv", package = "Ppurple"))
+> head(segs)
 ```
 
 <table>
@@ -143,7 +144,7 @@ head(segs)
 
 
 ```R
-pp = ppurple(cov = cov, hets = hets, segs = segs, verbose = TRUE)
+> pp = ppurple(cov = cov, hets = hets, segs = segs, verbose = TRUE)
 ```
 
     Fitting initial grid of 11 purity and 21 ploidy combinations.
@@ -162,7 +163,7 @@ pp = ppurple(cov = cov, hets = hets, segs = segs, verbose = TRUE)
 
 
 ```R
-pp[1,]
+>  pp[1,]
 ```
 
 

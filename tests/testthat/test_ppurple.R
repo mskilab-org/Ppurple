@@ -1,5 +1,4 @@
 library(Ppurple)
-
 library(data.table)
 
 context('testing Ppurple ops')

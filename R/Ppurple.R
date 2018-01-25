@@ -4,6 +4,8 @@
 #' @import gUtils
 #' @import bamUtils
 
+
+
 #' @name ssegment
 #' @rdname internal
 #' @title Internal function utilizing DNAcopy to segment a coverage profile
