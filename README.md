@@ -163,14 +163,12 @@ scope=col>ref</th></tr></thead>
 ```
 
     Fitting initial grid of 11 purity and 21 ploidy combinations.
-    Warning message in dt2gr(hets):
-    “coercing to GRanges via non-standard columns”Warning message in seg2gr(dt, seqlengths, seqinfo):
-    “some seqnames in seg object were not included in provided seqlengths: MT”Running hapseg on hets
     Hapseg iteration 1:
     		LL diff: 1e+100 tol:1
     Hapseg iteration 2:
     		LL diff: 5.17692387802526e-06 tol:1
     Running ppemgrid with 11 purities ranging from 0 to 1 and 21 ploidies ranging from 1 to 5 with rho of 1.00978885796089 het rho of 22.283605.
+    ... ...
     Ppurple EM iteration 3 :
     		LL diff:58.6840663431212 tol: 1
     Ppurple EM iteration 4 :
