@@ -190,7 +190,7 @@ scope=col>ref</th></tr></thead>
 
 Attributions
 ------------
-> Marcin Imielinski - Weill Cornell Medicine; Core Member, New York Genome Center
+> Marcin Imielinski - Assistant Professor, Weill Cornell Medicine; Core Member, New York Genome Center
 
 > Aditya Desphande - Tri-I CBM PhD candidate, Weill Cornell Medicine
 
