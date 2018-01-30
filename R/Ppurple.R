@@ -4,6 +4,8 @@
 #' @import gUtils
 #' @import bamUtils
 
+
+
 #' @name ssegment
 #' @rdname internal
 #' @title Internal function utilizing DNAcopy to segment a coverage profile
@@ -15,7 +17,6 @@
 #' @keywords internal
 #' @author Marcin Imielinski
 ssegment = function(cov, verbose = verbose){
-  library(DNAcopy)
     new.sl = seqlengths(cov)
     ix = which(!is.na(cov$y))
     if (verbose)
@@ -187,6 +188,15 @@ hapseg = function(hets, verbose = FALSE)
 #' @param mc.cores integer scalar to parallelize (default = 1)
 #' @param numchunks how many chunks to parallelize over (default = mc.cores)
 #' @export
+#' @example
+#'
+#' cov = fread(system.file("extdata", "coverage.csv", package = "Ppurple"))
+#' hets = fread(system.file("extdata", "hets.csv", package = "Ppurple"))
+#' segs = fread(system.file("extdata", "segs.csv", package = "Ppurple"))
+#'
+#' pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
+#' pp = ppurple(cov = sample(dt2gr(cov), 10000), hets = sample(dt2gr(hets), 10000), segs = segs, verbose = TRUE)
+#' 
 ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = FALSE, min.p = 0.0001, mc.cores = 1, numchunks = mc.cores)
 {
   if (!is.null(hets))
@@ -237,6 +247,11 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
 
   if (any(iix <- is.infinite(cov$y)))
     cov$y[iix]= NA
+
+  cov = cov[!is.na(cov$y), ]
+
+  if (length(cov)==0)
+    stop("No non empty cov's remaining")
 
   ## aggregate coverage around segs
   segs = gr2dt(cov)[, .(y = mean(y, na.rm = TRUE), sos = sum((y-mean(y, na.rm = TRUE))^2, na.rm = TRUE), nbins = .N),
@@ -379,6 +394,7 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   }
 
   segs = segs[!is.na(j), ]
+  sd0 = var(segs$y, na.rm = TRUE)
 
   if (verbose)
     message('Running ppemgrid with ', length(purities), ' purities ranging from ', min(purities), ' to ', max(purities), ' and ', length(ploidies), ' ploidies ranging from ', min(ploidies), ' to ', max(ploidies), ' with rho of ', rho, ' het rho of ', rho.h, '.')
@@ -389,13 +405,13 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   segs.grid = cbind(segs[.(ijk$j)], betagammas[ijk$i, ], data.table(k = ijk$k))
   
   set.seed(42)
-  parts = unique(c(-Inf, quantile(sample(segs$y, 1e4, replace = TRUE, prob = segs$nbins), probs = seq(0, 1, length.out = 10)), Inf))
+  parts = unique(c(-Inf, quantile(sample(segs$y, 1e4, replace = TRUE, prob = segs$nbins), na.rm = TRUE, probs = seq(0, 1, length.out = 10)), Inf))
 
   ## first set total copy number, prune a priori unlikely states to save compute
   segs.grid[, mu := gamma + beta * k]
   segs.grid[, pname := cut(mu, parts)]
   segs.grid[, partition := as.integer(pname)]
-  segs.grid[, sd := sqrt(var(y))]
+  segs.grid[, sd := sd0]
   segs.grid[, kdist := abs(y-mu)/beta]
   setkeyv(segs.grid, c("alpha", "tau", "j", "kdist"))
   segs.grid[, kord := 1:.N, .(alpha, tau, j)]
@@ -422,7 +438,7 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   segs.grid[mu.low ==0, mu.low := mu.low+1e-6] ## fix the mu == 0 to avoid Nan and -Inf issues
   setkey(segs.grid, first)
 
-  res = ppem(segs.grid, segs, segs.h, verbose = verbose)
+  res = ppem(segs.grid, segs, segs.h, verbose = verbose, sd0 = sd0)
   return(list(pta = res$pta, sd = res$sd, pk = res$pk, pkh = res$pkh))
 }
 
@@ -461,7 +477,7 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
 #' @param verbose logical flag 
 #' @keywords internal
 ppem = function(segs.grid, segs = NULL, segs.h = NULL,
-                 sd0 = segs.grid[!duplicated(j), sqrt(var(y))],
+                 sd0 = segs.grid[!duplicated(j), sqrt(var(y, na.rm = TRUE))],
                  sd0.k = 3,
                  use.tot = TRUE,
                  use.het = TRUE, 
@@ -496,7 +512,7 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
 
   segs.grid$pk =  pi.k[.(segs.grid$tau, segs.grid$k), pk]
   
-  datarange = 100*quantile(segs.grid$y, c(0.99)) ## param for uniform dist
+  datarange = 100*quantile(segs.grid$y, na.rm = TRUE, c(0.99)) ## param for uniform dist
 
   segs.grid[, log.pxj_ktasp.high := 0]
   segs.grid[, log.pxj_ktasp.low := 0]
@@ -510,7 +526,6 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
   use.het = as.numeric(use.het)
 
   start = Sys.time()
-
   while (convergence == FALSE && iteration < max_iter){
     iteration = iteration + 1
 
