@@ -11,7 +11,7 @@ ppurple(cov, hets = NULL, segs = NULL, purities = seq(0, 1, 0.1),
 \arguments{
 \item{cov}{GRanges or data.table of genome wide coverage tiles with field $y specifying normalized coverage}
 
-\item{hets}{GRanges or data.table of hets with fields $alt, $ref specifying alt and ref counts of hets in tumor}
+\item{hets}{GRanges or data.table of germline hets with fields $alt, $ref specifying alt and ref counts of hets in tumor}
 
 \item{segs}{GRanges of pre-computed segments (optional, if NULL these will be computed via DNA copy of cov)}
 
@@ -39,6 +39,16 @@ EM begins with initial (user specified) grid of values and then refines at 10 fo
 around the modes, meaning that it reruns the calculation with a finer grid completely surrounding the modes 
 to output the final solution which is a data.table mapping $purity and $ploidy values
 to a posterior probability $p
+}
+\examples{
+
+cov = fread(system.file("extdata", "coverage.csv", package = "Ppurple"))
+hets = fread(system.file("extdata", "hets.csv", package = "Ppurple"))
+segs = fread(system.file("extdata", "segs.csv", package = "Ppurple"))
+
+pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
+pp = ppurple(cov = sample(dt2gr(cov), 10000), hets = sample(dt2gr(hets), 10000), segs = segs, verbose = TRUE)
+
 }
 \author{
 Marcin Imielinski
