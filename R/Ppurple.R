@@ -211,12 +211,14 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
       else if (nrow(hets)==0)      
         hets = NULL
 
-      if (is.null(hets$alt))
-        stop('hets should have a column $alt specifying the alt count at each het site')
-
-      if (is.null(hets$ref))
-        stop('hets should have a column $ref specifying the ref count at each het site')
-
+      if (!is.null(hets))
+        {
+          if (is.null(hets$alt))
+            stop('hets should have a column $alt specifying the alt count at each het site')
+          
+          if (is.null(hets$ref))
+            stop('hets should have a column $ref specifying the ref count at each het site')
+        }
     }
 
   if (is.null(cov$y))
