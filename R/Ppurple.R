@@ -201,12 +201,6 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
 {
   if (!is.null(hets))
   {
-      if (is.null(hets$alt))
-        stop('hets should have a column $alt specifying the alt count at each het site')
-
-      if (is.null(hets$ref))
-        stop('hets should have a column $ref specifying the ref count at each het site')
-
       if (is(hets, 'GRanges'))
         {
           if (length(hets)>0)
@@ -215,7 +209,14 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
             hets = NULL
         }
       else if (nrow(hets)==0)      
-        hets = NULL      
+        hets = NULL
+
+      if (is.null(hets$alt))
+        stop('hets should have a column $alt specifying the alt count at each het site')
+
+      if (is.null(hets$ref))
+        stop('hets should have a column $ref specifying the ref count at each het site')
+
     }
 
   if (is.null(cov$y))
@@ -397,7 +398,7 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   sd0 = var(segs$y, na.rm = TRUE)
 
   if (verbose)
-    pmessage('Running ppemgrid with ', length(purities), ' purities ranging from ', min(purities), ' to ', max(purities), ' and ', length(ploidies), ' ploidies ranging from ', min(ploidies), ' to ', max(ploidies), ' with rho of ', signif(rho, 3), ' het rho of ', signif(rho.h,3), '.')
+    pmessage('Running ppemgrid with ', length(purities), ' purities [ ', min(purities), ' .. ', max(purities), '] and ', length(ploidies), ' ploidies [ ', min(ploidies), ' .. ', max(ploidies), ' ], rho = ', signif(rho, 3), ', het rho = ', signif(rho.h,3), '.')
 
   betagammas[, beta := rho*alpha / (2*(1-alpha) + alpha*tau)]
   betagammas[, gamma :=  rho*(2*(1-alpha))/(2*(1-alpha)+alpha*tau)]
