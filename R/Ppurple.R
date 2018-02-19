@@ -20,7 +20,7 @@ ssegment = function(cov, verbose = verbose){
     new.sl = seqlengths(cov)
     ix = which(!is.na(cov$y))
     if (verbose)
-      cat('sending ', length(ix), ' segments to DNAcopy\n')
+      pmessage('sending ', length(ix), ' segments to DNAcopy')
     cna = CNA(log(cov$y[ix]), as.character(seqnames(cov))[ix], start(cov)[ix], data.type = 'logratio')
     gc()
     if (verbose)
@@ -197,7 +197,7 @@ hapseg = function(hets, verbose = FALSE)
 #' pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
 #' pp = ppurple(cov = sample(dt2gr(cov), 10000), hets = sample(dt2gr(hets), 10000), segs = segs, verbose = TRUE)
 #' 
-ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = FALSE, min.p = 0.0001, mc.cores = 1, numchunks = mc.cores)
+ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = FALSE, min.p = 0.0001, mc.cores = 1, binsize = NULL, numchunks = mc.cores)
 {
   if (!is.null(hets))
   {
@@ -226,6 +226,31 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
 
   if (!inherits(cov, 'GRanges'))
     cov = dt2gr(cov)
+  
+  if (!inherits(cov, 'GRanges'))
+    cov = dt2gr(cov)
+  
+  if (verbose)
+    pmessage('Fitting initial grid of ', length(purities), ' purity and ', length(ploidies), ' ploidy combinations.')
+
+  if (any(iix <- is.infinite(cov$y)))
+    cov$y[iix]= NA
+
+  cov = cov[!is.na(cov$y), ]
+
+  ## collapse coverage to "rough" binsize prior to segmentation
+  if (!is.null(binsize))
+    {
+      pmessage('Collapsing coverage to binsize of ', binsize, '.')
+      tmp.cov = gr2dt(cov)[!is.infinite(y),][which(y<quantile(y, 0.999, na.rm = TRUE)), ]
+      collapsed.cov = tmp.cov[ ,.(y = mean(y, na.rm = TRUE)), by = .(seqnames, start = floor(start/binsize)* binsize+1)]
+      collapsed.cov[, end := start + binsize -1]
+      cov = dt2gr(collapsed.cov)
+    }
+
+  
+  if (length(cov)==0)
+    stop("No non empty cov's remaining")
 
   if (is.null(segs))
   {
@@ -237,26 +262,13 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
   if (!inherits(segs, 'GRanges'))
     segs = dt2gr(segs)
   
-  if (!inherits(cov, 'GRanges'))
-    cov = dt2gr(cov)
-  
-  if (verbose)
-    pmessage('Fitting initial grid of ', length(purities), ' purity and ', length(ploidies), ' ploidy combinations.')
-
-  cov$j = gr.match(cov, segs)
-
   if (!is.null(hets))
     hets$j = gr.match(dt2gr(hets), segs)
-
-  if (any(iix <- is.infinite(cov$y)))
-    cov$y[iix]= NA
-
-  cov = cov[!is.na(cov$y), ]
-
-  if (length(cov)==0)
-    stop("No non empty cov's remaining")
-
+  
   ## aggregate coverage around segs
+  segs.gr = segs;
+  cov$j = gr.match(cov, segs.gr)
+
   segs = gr2dt(cov)[, .(y = mean(y, na.rm = TRUE), sos = sum((y-mean(y, na.rm = TRUE))^2, na.rm = TRUE), nbins = .N),
                     keyby = .(j = j)]
 
@@ -397,7 +409,8 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   }
 
   segs = segs[!is.na(j), ]
-  sd0 = var(segs$y, na.rm = TRUE)
+   sd0 = sqrt(var(segs$y, na.rm = TRUE))
+ ## sd0 = var(segs$y, na.rm = TRUE)
 
   if (verbose)
     pmessage('Running ppemgrid with ', length(purities), ' purities [ ', min(purities), ' .. ', max(purities), '] and ', length(ploidies), ' ploidies [ ', min(ploidies), ' .. ', max(ploidies), ' ], rho = ', signif(rho, 3), ', het rho = ', signif(rho.h,3), '.')
@@ -624,7 +637,7 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
     ## print('pi.k')
     ## print(dcast.data.table(pi.k[alpha == 0.1 & tau %in% c(3.8, 6), .(alpha, tau, k, p = round(pk, 2))], tau ~ k, value.var = 'p'))
 
-    ## browser()
+   ## browser()
  
     if(all(diff < tol)){convergence = TRUE}
   }
