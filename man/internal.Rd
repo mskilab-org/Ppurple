@@ -51,7 +51,7 @@ ppem(segs.grid, segs = NULL, segs.h = NULL,
 
 \item{sd}{sigma param of normal distribution}
 
-\item{hets}{data.table of genome wide het sites with $alt, $ref}
+\item{hets}{data.table of genome wide het sites with $alt, $ref and field $j that groups the hets into segments}
 
 \item{purities}{vector of purities to sweep}
 

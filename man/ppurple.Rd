@@ -5,8 +5,9 @@
 \title{Probabilistic purity ploidy estimation}
 \usage{
 ppurple(cov, hets = NULL, segs = NULL, purities = seq(0, 1, 0.1),
-  ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = FALSE,
-  min.p = 1e-04, mc.cores = 1, numchunks = mc.cores)
+  ploidies = seq(1, 5, 0.2), refine = 10, K = 20, min.bins = 0,
+  min.hets = 0, ignore.sex = FALSE, verbose = FALSE, min.p = 1e-04,
+  mc.cores = 1, binsize = NULL, numchunks = mc.cores)
 }
 \arguments{
 \item{cov}{GRanges or data.table of genome wide coverage tiles with field $y specifying normalized coverage}
@@ -22,6 +23,12 @@ ppurple(cov, hets = NULL, segs = NULL, purities = seq(0, 1, 0.1),
 \item{refine}{integer scalar of how many fold refinement of purities x ploidies grid to perform after initial run (default = 10, careful to not make too big)}
 
 \item{K}{integer scalar number of copy states to model (default 20)}
+
+\item{min.bins}{minimum number of coverage bins in a seg for processing (default = 0)}
+
+\item{min.hets}{minimum number of hets in a seg for downstream processing (default = 0)}
+
+\item{ignore.sex}{logical flag whether to throw out sex chromosomes (X, Y, chrX, chrY)}
 
 \item{verbose}{logical flag}
 

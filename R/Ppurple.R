@@ -23,11 +23,11 @@ ssegment = function(cov, verbose = verbose){
       pmessage('sending ', length(ix), ' segments to DNAcopy')
     cna = CNA(log(cov$y[ix]), as.character(seqnames(cov))[ix], start(cov)[ix], data.type = 'logratio')
     gc()
-    if (verbose)
-      pmessage('\t ..finished segmentation')
     seg = segment(smooth.CNA(cna), alpha = 1e-5, verbose = 0)
     out = seg2gr(seg$out, new.sl) ## remove seqlengths that have not been segmented
     out = gr.fix(out, new.sl, drop = T)
+    if (verbose)
+      pmessage('\t ..finished segmentation')
     return(out)
 }
 
@@ -106,7 +106,7 @@ llnorm = function(x, sos, n, mu, sd)
 #' per group (i.e. segment)
 #' 
 #' Internal function
-#' @param hets data.table of genome wide het sites with $alt, $ref
+#' @param hets data.table of genome wide het sites with $alt, $ref and field $j that groups the hets into segments 
 #' @keywords internal
 #' @author Marcin Imielinski
 hapseg = function(hets, verbose = FALSE)
@@ -114,32 +114,40 @@ hapseg = function(hets, verbose = FALSE)
   ll = data.table(j = unique(hets$j), ll = -1e100, diff = 1e100)
   setkey(ll, j)
 
-  dat = hets[, .(j = j, i = 1:.N, alt = alt, ref = ref, phase = rep(c(TRUE, FALSE), each = .N))]
-  dat[, p := ifelse(phase, as.numeric(alt>ref), as.numeric(alt<=ref))]
+  ## replicating hets to include two phases (TRUE = alt high, ref low, FALSE = alt low, ref high)
+  dat = hets[, .(j = rep(j,2), alt = rep(alt,2), ref = rep(ref,2), phase = rep(c(TRUE, FALSE), each = .N))][, i := rep(1:(.N/2),2), by = j]
+
+  ## populate initial value for posterior probability of cluster membership, which we set to probability 1 based on ? alt>ref
+  ## i.e. p is 1 iff phase is TRUE and alt>ref or phase is FALSE and ref>=alt, otherwise 0
+#  dat[, p := ifelse(phase, as.numeric(alt>ref), as.numeric(alt<=ref))]  
+  p0 = 1
+  dat[, p := ifelse(phase, ifelse(alt>ref, p0, 1-p0), ifelse(as.numeric(alt<=ref), p0, 1-p0))]
+  setkeyv(dat, c("j", "i"))
   tol = 1
   iteration = 1
   while (any(ll$diff > tol))
   {
     if (verbose)
       pmessage('Hapseg iteration ', iteration, ':')
+
     ##
-    ## M STEP
+    ## M STEP: estimating poisson cluster centers
     ##
     lambda = dat[, .(
-      lhigh = sum(p[phase]*alt[phase] + p[!phase]*ref[!phase])/(.N/2),
+      lhigh = sum(p[phase]*alt[phase] + p[!phase]*ref[!phase])/(.N/2), ## dividing by number of hets in each j slice (i.e. which .N/2 since we "replicated")
       llow = sum(p[!phase]*alt[!phase] + p[phase]*ref[phase])/(.N/2)
     ), keyby = .(j)]
-    dat$lhigh = lambda[.(dat$j), lhigh]
+    dat$lhigh = lambda[.(dat$j), lhigh] ## merge lhigh / llow estimates back to dat which tracks het phases across all hets
     dat$llow = lambda[.(dat$j), llow]
 
     ##
     ## E STEP
     ##
-    dat[phase == TRUE, ll := log(0.5) + dpois(alt, lhigh, log = TRUE) + dpois(ref, llow, log = TRUE)]
+    dat[phase == TRUE, ll := log(0.5) + dpois(alt, lhigh, log = TRUE) + dpois(ref, llow, log = TRUE)] ## assume 0.5 prior of + vs - phase 
     dat[phase == FALSE, ll := log(0.5) + dpois(alt, llow, log = TRUE) + dpois(ref, lhigh, log = TRUE)]
-    dat[, lsei := log.sum.exp(ll), by = .(j, i)] ## sum over phases (dupping lsei across phases)
+    dat[, lsei := log.sum.exp(ll), by = .(j, i)] ## sum over phases (duplicating lsei across phases)
     dat[, lsej := sum(lsei[phase]), by = .(j)] ## sum over segment (don't overcount hence select for phase == TRUE)
-    dat[, p := exp(ll-lsei), by = .(j, i)]
+    dat[, p := exp(ll-lsei), by = .(j, i)] ## p is the new posterior probability of phase in each het i 
 
     ll.new = dat[i == 1 & phase == TRUE, .(ll = lsej), keyby = j]
     ll.new$ll.old =  ll[.(ll.new$j), ll]
@@ -151,6 +159,7 @@ hapseg = function(hets, verbose = FALSE)
   }
 
   ## final go around compute our expected sufficient statistics
+  ## these summary stats will be used by llpois
   segs = dat[, .(    
     high.lambda = sum(p[phase]*alt[phase] + p[!phase]*ref[!phase])/(.N/2),
     low.lambda = sum(p[!phase]*alt[!phase] + p[phase]*ref[phase])/(.N/2),
@@ -183,6 +192,9 @@ hapseg = function(hets, verbose = FALSE)
 #' @param purities numeric vector of ploidies to sweep in grid (default from 1 to 5, 0.2 increment)
 #' @param ploidies numeric vector of purities to sweep in grid (default from 0 to 1, 0.1 increment)
 #' @param refine integer scalar of how many fold refinement of purities x ploidies grid to perform after initial run (default = 10, careful to not make too big)
+#' @param ignore.sex logical flag whether to throw out sex chromosomes (X, Y, chrX, chrY)
+#' @param min.bins minimum number of coverage bins in a seg for processing (default = 0)
+#' @param min.hets minimum number of hets in a seg for downstream processing (default = 0)
 #' @param K integer scalar number of copy states to model (default 20)
 #' @param verbose logical flag
 #' @param mc.cores integer scalar to parallelize (default = 1)
@@ -197,7 +209,7 @@ hapseg = function(hets, verbose = FALSE)
 #' pp = ppurple(cov = cov, hets = hets, verbose = TRUE)
 #' pp = ppurple(cov = sample(dt2gr(cov), 10000), hets = sample(dt2gr(hets), 10000), segs = segs, verbose = TRUE)
 #' 
-ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, verbose = FALSE, min.p = 0.0001, mc.cores = 1, binsize = NULL, numchunks = mc.cores)
+ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), ploidies = seq(1, 5, 0.2), refine = 10, K = 20, min.bins = 0, min.hets = 0, ignore.sex = FALSE, verbose = FALSE, min.p = 0.0001, mc.cores = 1, binsize = NULL, numchunks = mc.cores)
 {
   if (!is.null(hets))
   {
@@ -258,19 +270,32 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
       pmessage('Segments not provided so doing internal segmentation via DNAcopy')
     segs = ssegment(cov, verbose)
   }
-  
+
   if (!inherits(segs, 'GRanges'))
     segs = dt2gr(segs)
   
   if (!is.null(hets))
     hets$j = gr.match(dt2gr(hets), segs)
-  
+
+  if (ignore.sex)
+  {
+    if (verbose)
+      pmessage('Removing sex chromosomes')
+    segs = segs[!(gsub('chr', '', seqnames(segs)) %in% c('X', 'Y')), ]
+    if (!is.null(hets))
+      hets = hets[!(gsub('chr', '', seqnames)) %in% c('X', 'Y'), ]
+    cov = cov[!(gsub('chr', '', seqnames(cov)) %in% c('X', 'Y')), ]
+  }
+
   ## aggregate coverage around segs
   segs.gr = segs;
   cov$j = gr.match(cov, segs.gr)
 
   segs = gr2dt(cov)[, .(y = mean(y, na.rm = TRUE), sos = sum((y-mean(y, na.rm = TRUE))^2, na.rm = TRUE), nbins = .N),
-                    keyby = .(j = j)]
+                    keyby = .(j = j)][nbins>min.bins, ]
+
+  if (verbose & min.bins > 0)
+    pmessage('Removing segs with fewer than ', min.bins, ' bins')
 
   if (!is.null(hets))
   {
@@ -280,6 +305,10 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
     segs.h$y.high = segs.h$high.lambda
     segs.h$y.low = segs.h$low.lambda
     segs.h$nbins.h = segs.h$n
+    if (verbose & min.hets > 0)
+      pmessage('Removing het segs with fewer than ', min.hets, ' hets')
+    
+    segs.h = segs.h[nbins.h>min.hets, ]
     rho.h = mean(c(hets$alt, hets$ref), na.rm = TRUE)
   }
   else
@@ -409,8 +438,8 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   }
 
   segs = segs[!is.na(j), ]
-   sd0 = sqrt(var(segs$y, na.rm = TRUE))
- ## sd0 = var(segs$y, na.rm = TRUE)
+
+  sd0 = sqrt(var(segs$y, na.rm = TRUE))
 
   if (verbose)
     pmessage('Running ppemgrid with ', length(purities), ' purities [ ', min(purities), ' .. ', max(purities), '] and ', length(ploidies), ' ploidies [ ', min(ploidies), ' .. ', max(ploidies), ' ], rho = ', signif(rho, 3), ', het rho = ', signif(rho.h,3), '.')
@@ -432,20 +461,20 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   setkeyv(segs.grid, c("alpha", "tau", "j", "kdist"))
   segs.grid[, kord := 1:.N, .(alpha, tau, j)]
   ##  segs.grid = segs.grid[k<0 | kdist<=k.dist, ]
-  segs.grid = segs.grid[k<0 | kord<k.dist, ]
-  segs.grid[, sos.k := nbins*(mu-y)^2 + sos]
+  segs.grid = segs.grid[k<0 | kord<k.dist, ] ## pick k.dist y that are closest to mu 
+  segs.grid[, sos.k := nbins*(mu-y)^2 + sos] ## we recompute sum of sq (sos.k) around the various cluster centers (mu) using the intra segment sos (sos) and segment mean (y) and num bins (nbins)
   segs.grid[, first := (k == -1)]
   
-  ## data.table to expand k by k.high and k low
+  ## data.table to expand k by k.high and k low --> note every segment will have a k.low = 0 
   khl = rbind(as.data.table(expand.grid(k = 0:K, k.high = 0:K))[k.high<=k, ][, k.low := k-k.high][k.low<=k.high,],
-              data.table(k = -1, k.high = -1, k.low = -1))
+              data.table(k = -1, k.high = -1, k.low = -1)) ## enumerating all combinations that add up to k
   setkey(khl, k)
-  segs.grid = merge(segs.grid, segs.h, by = 'j', all.x = TRUE)
-  segs.grid = merge(segs.grid, khl, by = 'k', all.x = TRUE, allow.cartesian = TRUE)
+  segs.grid = merge(segs.grid, segs.h, by = 'j', all.x = TRUE) ## adding het data to the total coverage
+  segs.grid = merge(segs.grid, khl, by = 'k', all.x = TRUE, allow.cartesian = TRUE) ## expanding the copy states by khl (ie to add rows corresponding to high low combos)
 
   ## formula for beta gamma slightly different for hets 
   segs.grid[, gamma.h := gamma*rho.h/rho]
-  segs.grid[, beta.h := 2*beta*rho.h/rho]
+  segs.grid[, beta.h := 2*beta*rho.h/rho] ## het beta is twice regular beta after sloidy correction
   segs.grid[, mu.high := gamma.h + beta.h * k.high]
   segs.grid[, mu.low := gamma.h + beta.h * k.low]
   segs.grid[, first := (k == -1)]
@@ -564,23 +593,23 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
 
     ## we are summing across all joint high low states to get the overall likelihood of that total copy state
     segs.grid[k>=0, log.pxj_ktasp := (log.pxj_ktasp.tot[1]*use.tot
-      + use.het*log.sum.exp(log.pxj_ktasp.high + log.pxj_ktasp.low)), 
+      + use.het*log.sum.exp(log.pxj_ktasp.high + log.pxj_ktasp.low)),  ## this log.sum.exp is over allelic copy states that add to a given k
       by = .(j, k, tau, alpha)]
     ## segs.grid[k>=0, log.pxj_ktasp.het := (0*log.pxj_ktasp.tot[1]*use.tot
     ##   + use.het*log.sum.exp(log.pxj_ktasp.high + log.pxj_ktasp.low)), 
     ##   by = .(j, k, tau, alpha)]
-    segs.grid[k.low<=0, log.pxj_spat.norm := log.sum.exp(log.pxj_ktasp),
+    segs.grid[k.low<=0, log.pxj_spat.norm := log.sum.exp(log.pxj_ktasp), ## note: every segment x k is guaranteed to have a k.low = 0, so we marginalizing over copy states in each seg
               by = .(j,alpha,tau)] ## log likelihood of segment j given sigma, pi (after integrating out k, k.high, k.low)
     segs.grid[, log.pk_xjspat := log.pxj_ktasp-log.pxj_spat.norm]  ## this is log posterior prob of k, tau, alpha aka r_jkat
     segs.grid[, r_jkat := exp(log.pk_xjspat)]  ## this is posterior prob of k given tau, alpha, sigma, pi
-
+ 
     if (!is.null(pta))
       ll.old = pta$log.px_spat
     else
       ll.old = ll.init
 
     ## combine seg and het likelihoods into a single log likelihood for alpha tau combo
-    pta = segs.grid[.(TRUE), .(log.px_spat = sum(log.pxj_spat.norm)), keyby = .(tau, alpha)] 
+    pta = segs.grid[.(TRUE), .(log.px_spat = sum(log.pxj_spat.norm)), keyby = .(tau, alpha)]  ## .(TRUE) gives one row per segment 
     pta[, log.pat_xsp := log.px_spat - log.sum.exp(pta$log.px_spat)]
     pta[, log.px_spat_old := ll.old]
     pta[, ll.diff := log.px_spat - log.px_spat_old]
@@ -590,14 +619,17 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
     ## M step
     #################
 
-    ## re-compute pk ie copy number prior ie by finding new sd param for "discrete normal"
-    pi.k = segs.grid[k.low<=0 , .(n = sum(r_jkat*nbins)), keyby = .(alpha, tau, k)]
+    ## this part (in absence of uniform distribution) will estimate sd for copy number prior (which is discretized normal distribution
+    ## centered at tau)  that updated prior to segs.grid
 
-    ## here is the estimator using pseudocount to avoid sd.k = 0 issue
-    sd.k = segs.grid[k.low<=0, .(sd = sqrt((sum((r_jkat*nbins+1)*(k - tau)^2))/(sum((r_jkat*nbins+1))))), keyby = .(alpha, tau)]
+    ## re-compute pk ie copy number prior ie by finding new sd param for "discrete normal"
+    pi.k = segs.grid[k.low<=0 , .(n = sum(r_jkat*nbins)), keyby = .(alpha, tau, k)] ## one segment per k, a, t
+
+    ## remember - this is sd for the copy number prior which is centered at tau
+    sd.k = segs.grid[k.low<=0, .(sd = sqrt((sum((r_jkat*nbins+1)*(k - tau)^2))/(sum((r_jkat*nbins+1))))), keyby = .(alpha, tau)] ## note: different sd.k for every alpha, tau
 
     ## merge with prior probabilities (only relevant for uniform component, i.e. if we are using them)
-    pi.k = merge(merge(pi.k, pi.k0, by = c('tau', 'k')), sd.k, by = c('alpha', 'tau'))
+    pi.k = merge(merge(pi.k, pi.k0, by = c('tau', 'k')), sd.k, by = c('alpha', 'tau')) ##
     if (use.uniform)
       pi.k[, pk0 := (n[k==-1]+pk[k==-1])/sum(n+pk), by = .(alpha, tau)] ## we'll only keep this estimate for k = -1
     else
@@ -612,7 +644,8 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
     ## compute sd
     if (is.null(fix.sd))
     {
-      sd = segs.grid[k>=0 & k.low<=0, .(sd = sqrt(sum(r_jkat*sos.k)/sum(r_jkat*nbins))), keyby = .(alpha,tau)]
+      ## k>=0 & k.low<=0 ensures that we have non duplicate segments per alpha, tau
+      sd = segs.grid[k>=0 & k.low<=0, .(sd = sqrt(sum(r_jkat*sos.k)/sum(r_jkat*nbins))), keyby = .(alpha,tau)] ## estimate different sd for every alpha tau
       segs.grid$sd = sd[.(segs.grid[, .(alpha,tau)]), sd]
     }
 
@@ -637,8 +670,7 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
     ## print('pi.k')
     ## print(dcast.data.table(pi.k[alpha == 0.1 & tau %in% c(3.8, 6), .(alpha, tau, k, p = round(pk, 2))], tau ~ k, value.var = 'p'))
 
-   ## browser()
- 
+
     if(all(diff < tol)){convergence = TRUE}
   }
   return(list(pta = pta, segs = segs.grid, pk = pi.k))
