@@ -301,7 +301,7 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
   {
     if (verbose)
       pmessage('Running hapseg on hets')
-    segs.h = hapseg(hets[!is.na(j),], verbose)$seg
+    segs.h = hapseg(hets[!is.na(j),], verbose)$segs
     segs.h$y.high = segs.h$high.lambda
     segs.h$y.low = segs.h$low.lambda
     segs.h$nbins.h = segs.h$n
