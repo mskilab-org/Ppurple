@@ -459,12 +459,14 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   segs.grid[, sd := sd0]
   segs.grid[, kdist := abs(y-mu)/beta]
   setkeyv(segs.grid, c("alpha", "tau", "j", "kdist"))
-  segs.grid[, kord := 1:.N, .(alpha, tau, j)]
+  segs.grid[k>=0, kord := 1:.N, .(alpha, tau, j)]
+  segs.grid[k<0, kord := as.integer(0), .(alpha, tau, j)]
   ##  segs.grid = segs.grid[k<0 | kdist<=k.dist, ]
-  segs.grid = segs.grid[k<0 | kord<k.dist, ] ## pick k.dist y that are closest to mu 
-  segs.grid[, sos.k := nbins*(mu-y)^2 + sos] ## we recompute sum of sq (sos.k) around the various cluster centers (mu) using the intra segment sos (sos) and segment mean (y) and num bins (nbins)
+  ### fixed kord so that kord = 0 for k<0, and we don't skip kords for k>=0 Tuesday, May 15, 2018 09:54:28 PM
+  segs.grid = segs.grid[k<0 | kord<k.dist, ] ## pick k.dist y that are closest to mu   
+  segs.grid[, sos.k := nbins*(mu-y)^2 + sos] ## we recompute sum of sq (sos.k) around the various cluster centers (mu) using the intra segment sos (sos) and segment mean (y) and num bins (nbins)  
   segs.grid[, first := (k == -1)]
-  
+
   ## data.table to expand k by k.high and k low --> note every segment will have a k.low = 0 
   khl = rbind(as.data.table(expand.grid(k = 0:K, k.high = 0:K))[k.high<=k, ][, k.low := k-k.high][k.low<=k.high,],
               data.table(k = -1, k.high = -1, k.low = -1)) ## enumerating all combinations that add up to k
@@ -628,6 +630,7 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
     ## remember - this is sd for the copy number prior which is centered at tau
     sd.k = segs.grid[k.low<=0, .(sd = sqrt((sum((r_jkat*nbins+1)*(k - tau)^2))/(sum((r_jkat*nbins+1))))), keyby = .(alpha, tau)] ## note: different sd.k for every alpha, tau
 
+    EPS = 1e-200
     ## merge with prior probabilities (only relevant for uniform component, i.e. if we are using them)
     pi.k = merge(merge(pi.k, pi.k0, by = c('tau', 'k')), sd.k, by = c('alpha', 'tau')) ##
     if (use.uniform)
@@ -635,7 +638,7 @@ ppem = function(segs.grid, segs = NULL, segs.h = NULL,
     else
       pi.k[, pk0 := 0]
     pi.k[k<0, pk := pk0]
-    pi.k[k>=0, pk := dnorm(k, tau, sd), by = .(alpha, tau)] ## reapply prior for non-uniform components using sd 
+    pi.k[k>=0, pk := EPS+dnorm(k, tau, sd), by = .(alpha, tau)] ## reapply prior for non-uniform components using sd 
     pi.k[k>=0, pk := (pk/sum(pk))*(1-pk0), by = .(alpha, tau)] ## uniform component gets pk0, and the rest is to make sure we sum to 1
     setkeyv(pi.k, c('alpha', 'tau', 'k'))
 
