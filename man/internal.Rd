@@ -12,7 +12,7 @@
 \alias{ppem}
 \title{Internal function utilizing DNAcopy to segment a coverage profile}
 \usage{
-ssegment(cov, verbose = verbose)
+ssegment(cov, verbose = TRUE)
 
 \method{log}{sum.exp}(x)
 

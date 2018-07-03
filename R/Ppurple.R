@@ -16,7 +16,7 @@
 #' @return GRanges of genomewise segments of piecewise constant coverage
 #' @keywords internal
 #' @author Marcin Imielinski
-ssegment = function(cov, verbose = verbose){
+ssegment = function(cov, verbose = TRUE){
     new.sl = seqlengths(cov)
     ix = which(!is.na(cov$y))
     if (verbose)
@@ -336,9 +336,13 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
   if (!is.na(refine))
     if (round(refine)>1)
     {
-      refine = round(refine)      
-      gridw.pu = min(diff(purities))
-      gridw.pl = min(diff(ploidies))
+      refine = round(refine)
+      
+      gridw.pu = gridw.pl = Inf
+      if (length(purities)>0)
+        gridw.pu = min(diff(purities))
+      if (length(ploidies)>0)
+        gridw.pl = min(diff(ploidies))
 
       ##
       ## FIRST refine purities using all ploidies
@@ -373,8 +377,12 @@ ppurple = function(cov, hets = NULL, segs = NULL, purities = seq(0, 1.0, 0.1), p
       ## draw rectangles around all regions above min.p
       purities = sort(unique(pta$alpha))
       ploidies = sort(unique(pta$tau))
-      gridw.pu = min(diff(purities))
-      gridw.pl = min(diff(ploidies))
+      gridw.pu = gridw.pl = Inf
+      if (length(purities)>0)
+        gridw.pu = min(diff(purities))
+      if (length(ploidies)>0)
+        gridw.pl = min(diff(ploidies))
+
       modes = pta[rev(order(log.pat_xsp)), ][pta>min.p | (1:.N %in% 1:5), ]
       modes[, pli := match(tau, ploidies)]
       modes[, pui := match(alpha, purities)]
@@ -443,7 +451,7 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
 
   if (verbose)
     pmessage('Running ppemgrid with ', length(purities), ' purities [ ', min(purities), ' .. ', max(purities), '] and ', length(ploidies), ' ploidies [ ', min(ploidies), ' .. ', max(ploidies), ' ], rho = ', signif(rho, 3), ', het rho = ', signif(rho.h,3), '.')
-
+  ##browser()  
   betagammas[, beta := rho*alpha / (2*(1-alpha) + alpha*tau)]
   betagammas[, gamma :=  rho*(2*(1-alpha))/(2*(1-alpha)+alpha*tau)]
   ijk = as.data.table(expand.grid(j = segs$j, i = 1:nrow(betagammas), k = (-1):K))
@@ -485,6 +493,7 @@ ppemgrid = function(purities = NULL, ploidies = NULL, pp = NULL, segs, segs.h, r
   segs.grid[mu.low ==0, mu.low := mu.low+1e-6] ## fix the mu == 0 to avoid Nan and -Inf issues
   setkey(segs.grid, first)
 
+  
   res = ppem(segs.grid, segs, segs.h, verbose = verbose, sd0 = sd0)
   return(list(pta = res$pta, sd = res$sd, pk = res$pk, pkh = res$pkh))
 }
